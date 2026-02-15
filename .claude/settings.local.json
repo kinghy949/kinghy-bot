@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(for file in *.docx)",
+      "Bash(do echo \"=== $file ===\")",
+      "Bash(unzip:*)",
+      "Bash(done)",
+      "Bash(python:*)",
+      "Bash(where:*)",
+      "Bash(python3:*)",
+      "Bash(python3 -m pip install:*)"
+    ]
+  }
+}
