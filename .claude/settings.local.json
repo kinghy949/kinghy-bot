@@ -9,7 +9,11 @@
       "Bash(python:*)",
       "Bash(where:*)",
       "Bash(python3:*)",
-      "Bash(python3 -m pip install:*)"
+      "Bash(python3 -m pip install:*)",
+      "Bash(npm create:*)",
+      "Bash(npm install:*)",
+      "Bash(npx vite build)",
+      "Bash(/tmp/final_summary.txt:*)"
     ]
   }
 }

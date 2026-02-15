@@ -1,0 +1,27 @@
+id: flask_vue
+name: "Flask + Vue3"
+description: "Python系轻量级Web应用"
+languages: "Python、JavaScript、HTML、CSS"
+dev_tools: "PyCharm 2023、VS Code"
+runtime: "Python 3.10、MySQL 5.7、Nginx 1.24、Node.js 18"
+os: "Windows 10 / Ubuntu 22.04"
+frontend_framework: "Vue3 + Element Plus"
+backend_framework: "Flask 3.0 + SQLAlchemy"
+code_templates_dir: "code_templates/flask_vue/"
+prompt_template: "prompts/flask_vue.txt"
+
+environment:
+  languages: "Python、JavaScript、HTML、CSS"
+  dev_tools: "PyCharm 2023、VS Code"
+  runtime: "Python 3.10、MySQL 5.7、Nginx 1.24、Node.js 18"
+  os: "Windows 10 / Ubuntu 22.04"
+  hardware: "PC服务器，CPU 4核以上，内存8GB以上，硬盘100GB以上"
+
+install_steps: |
+  1. 安装Python 3.10，配置pip镜像源
+  2. 安装MySQL 5.7，创建数据库并导入初始化脚本
+  3. 安装Node.js 18，配置npm镜像源
+  4. 后端：进入server目录，执行 pip install -r requirements.txt
+  5. 前端：进入client目录，执行 npm install
+  6. 启动后端：python app.py
+  7. 启动前端：npm run dev

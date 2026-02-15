@@ -1,0 +1,28 @@
+id: springboot_vue
+name: "SpringBoot + Vue3"
+description: "Java系企业管理系统，适合中大型Web应用"
+languages: "Java、JavaScript、HTML、CSS"
+dev_tools: "IntelliJ IDEA 2023、Maven 3.8、VS Code"
+runtime: "JDK 1.8、MySQL 5.7、Apache Tomcat 9.0、Node.js 18"
+os: "Windows 10 / CentOS 7.6"
+frontend_framework: "Vue3 + Element Plus"
+backend_framework: "SpringBoot 2.7"
+code_templates_dir: "code_templates/springboot_vue/"
+prompt_template: "prompts/springboot_vue.txt"
+
+environment:
+  languages: "Java、JavaScript、HTML、CSS"
+  dev_tools: "IntelliJ IDEA 2023、Maven 3.8、VS Code"
+  runtime: "JDK 1.8、MySQL 5.7、Apache Tomcat 9.0、Node.js 18"
+  os: "Windows 10 / CentOS 7.6"
+  hardware: "PC服务器，CPU 4核以上，内存8GB以上，硬盘100GB以上"
+
+install_steps: |
+  1. 安装JDK 1.8，配置JAVA_HOME环境变量
+  2. 安装Maven 3.8，配置MAVEN_HOME环境变量
+  3. 安装MySQL 5.7，创建数据库并导入初始化脚本
+  4. 安装Node.js 18，配置npm镜像源
+  5. 后端：进入server目录，执行 mvn clean install
+  6. 前端：进入client目录，执行 npm install
+  7. 启动后端：mvn spring-boot:run
+  8. 启动前端：npm run dev
