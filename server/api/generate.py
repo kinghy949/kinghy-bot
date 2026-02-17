@@ -15,8 +15,11 @@ generate_bp = Blueprint('generate', __name__)
 def create_generate_task():
     """提交生成任务"""
     data = request.get_json()
+    logger.info("接口入参 /generate: %s", data)
     if not data:
-        return jsonify({"error": "请求体不能为空"}), 400
+        resp = {"error": "请求体不能为空"}
+        logger.warning("接口出参 /generate: status=400, body=%s", resp)
+        return jsonify(resp), 400
 
     # 参数校验
     software_name = data.get('software_name', '').strip()
@@ -26,11 +29,17 @@ def create_generate_task():
     completion_date = data.get('completion_date', date.today().isoformat())
 
     if not software_name:
-        return jsonify({"error": "软著名称不能为空"}), 400
+        resp = {"error": "软著名称不能为空"}
+        logger.warning("接口出参 /generate: status=400, body=%s", resp)
+        return jsonify(resp), 400
     if not description:
-        return jsonify({"error": "项目描述不能为空"}), 400
+        resp = {"error": "项目描述不能为空"}
+        logger.warning("接口出参 /generate: status=400, body=%s", resp)
+        return jsonify(resp), 400
     if not tech_stack:
-        return jsonify({"error": "请选择技术栈"}), 400
+        resp = {"error": "请选择技术栈"}
+        logger.warning("接口出参 /generate: status=400, body=%s", resp)
+        return jsonify(resp), 400
 
     # 校验目标行数范围
     target_lines = max(3000, min(8000, int(target_lines)))
@@ -38,7 +47,9 @@ def create_generate_task():
     # 加载技术栈配置
     tech_config = load_tech_stack(tech_stack)
     if not tech_config:
-        return jsonify({"error": f"不支持的技术栈: {tech_stack}"}), 400
+        resp = {"error": f"不支持的技术栈: {tech_stack}"}
+        logger.warning("接口出参 /generate: status=400, body=%s", resp)
+        return jsonify(resp), 400
 
     # 自动提取简称（去掉"基于xxx的"前缀和"系统/平台"后缀）
     short_name = software_name
@@ -67,12 +78,16 @@ def create_generate_task():
     orchestrator = Orchestrator(task_manager)
     task_id = task_manager.submit_task(orchestrator.run, context)
 
-    return jsonify({"task_id": task_id}), 201
+    resp = {"task_id": task_id}
+    logger.info("接口出参 /generate: status=201, body=%s", resp)
+    return jsonify(resp), 201
 
 
 @generate_bp.route('/tech-stacks', methods=['GET'])
 def get_tech_stacks():
     """获取可用技术栈列表"""
+    logger.info("接口入参 /tech-stacks: 无")
     from utils.tech_stack_loader import load_all_tech_stacks
     stacks = load_all_tech_stacks()
+    logger.info("接口出参 /tech-stacks: status=200, count=%s", len(stacks))
     return jsonify(stacks)
