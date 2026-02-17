@@ -54,10 +54,11 @@ class AIClient:
 
     def _create_adapter(self, provider: str, api_key: str, model: str):
         """创建模型适配器"""
-        if provider == 'zhipu':
+        normalized = (provider or '').strip()
+        if normalized == 'zhipu':
             from ai.adapters.zhipu_adapter import ZhipuAdapter
             return ZhipuAdapter(api_key, model)
-        elif provider == 'tongyi':
+        elif normalized in ('tongyi', 'tongyiQwen', 'tongyi_qwen'):
             from ai.adapters.tongyi_adapter import TongyiAdapter
             return TongyiAdapter(api_key, model)
         else:

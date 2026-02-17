@@ -46,6 +46,7 @@
   - 影响路径（如 `server/generators/orchestrator.py`）；
   - 手工验证步骤；
   - 涉及前端时附关键截图（如 `client/src/views/*`）。
+- 每次发生代码修改后，必须同步更新 `docs/项目变更记录.md`，记录本次改动内容、影响文件与时间。
 
 ## 安全与配置建议
 - 基于 `server/.env.example` 创建本地 `.env`，不要提交真实 API Key。

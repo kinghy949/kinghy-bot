@@ -17,9 +17,9 @@ class Config:
     """应用配置"""
 
     # AI模型配置
-    AI_PRIMARY_PROVIDER = os.getenv('AI_PRIMARY_PROVIDER', 'zhipu')
+    AI_PRIMARY_PROVIDER = os.getenv('AI_PRIMARY_PROVIDER', 'tongyiQwen')
     AI_PRIMARY_API_KEY = os.getenv('AI_PRIMARY_API_KEY', '')
-    AI_PRIMARY_MODEL = os.getenv('AI_PRIMARY_MODEL', 'glm-4')
+    AI_PRIMARY_MODEL = os.getenv('AI_PRIMARY_MODEL', 'qwen-plus')
 
     AI_FALLBACK_PROVIDER = os.getenv('AI_FALLBACK_PROVIDER', '')
     AI_FALLBACK_API_KEY = os.getenv('AI_FALLBACK_API_KEY', '')
