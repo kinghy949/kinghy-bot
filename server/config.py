@@ -19,7 +19,7 @@ class Config:
     # AI模型配置
     AI_PRIMARY_PROVIDER = os.getenv('AI_PRIMARY_PROVIDER', 'tongyiQwen')
     AI_PRIMARY_API_KEY = os.getenv('AI_PRIMARY_API_KEY', '')
-    AI_PRIMARY_MODEL = os.getenv('AI_PRIMARY_MODEL', 'qwen-plus')
+    AI_PRIMARY_MODEL = os.getenv('AI_PRIMARY_MODEL', 'qwen3-max-2026-01-23')
 
     AI_FALLBACK_PROVIDER = os.getenv('AI_FALLBACK_PROVIDER', '')
     AI_FALLBACK_API_KEY = os.getenv('AI_FALLBACK_API_KEY', '')
