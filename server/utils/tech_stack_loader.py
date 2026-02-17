@@ -1,11 +1,46 @@
 """技术栈配置加载器"""
 import logging
-from pathlib import Path
-import yaml
 
 from config import Config
 
 logger = logging.getLogger(__name__)
+
+try:
+    import yaml
+except ImportError:
+    yaml = None
+
+
+def _fallback_parse_yaml(text: str) -> dict:
+    data: dict = {}
+    env: dict = {}
+    current = data
+    for raw in text.splitlines():
+        line = raw.rstrip()
+        if not line or line.strip().startswith("#"):
+            continue
+        if line.startswith("environment:"):
+            data["environment"] = env
+            current = env
+            continue
+        if ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        current[key] = value
+    return data
+
+
+def _load_yaml(path) -> dict | None:
+    try:
+        text = path.read_text(encoding="utf-8")
+        if yaml:
+            return yaml.safe_load(text)
+        return _fallback_parse_yaml(text)
+    except Exception as e:
+        logger.error("加载YAML失败: %s", e)
+        return None
 
 
 def load_tech_stack(stack_id: str) -> dict | None:
@@ -14,12 +49,7 @@ def load_tech_stack(stack_id: str) -> dict | None:
     if not config_path.exists():
         logger.error(f"技术栈配置文件不存在: {config_path}")
         return None
-    try:
-        with open(config_path, 'r', encoding='utf-8') as f:
-            return yaml.safe_load(f)
-    except Exception as e:
-        logger.error(f"加载技术栈配置失败: {e}")
-        return None
+    return _load_yaml(config_path)
 
 
 def load_all_tech_stacks() -> list[dict]:
@@ -28,14 +58,14 @@ def load_all_tech_stacks() -> list[dict]:
     if not Config.TECH_STACKS_DIR.exists():
         return stacks
     for config_path in sorted(Config.TECH_STACKS_DIR.glob("*.yaml")):
-        try:
-            with open(config_path, 'r', encoding='utf-8') as f:
-                data = yaml.safe_load(f)
-                stacks.append({
-                    'id': data.get('id', config_path.stem),
-                    'name': data.get('name', config_path.stem),
-                    'description': data.get('description', ''),
-                })
-        except Exception as e:
-            logger.error(f"加载技术栈 {config_path.name} 失败: {e}")
+        data = _load_yaml(config_path)
+        if not data:
+            continue
+        stacks.append(
+            {
+                "id": data.get("id", config_path.stem),
+                "name": data.get("name", config_path.stem),
+                "description": data.get("description", ""),
+            }
+        )
     return stacks
