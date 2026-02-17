@@ -1,0 +1,51 @@
+# OS / Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Node / Frontend
+node_modules/
+client/node_modules/
+client/dist/
+
+# Environment files
+.env
+.env.*
+!.env.example
+server/.env
+server/.env.*
+!server/.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Runtime generated files
+server/output/*
+!server/output/.gitkeep
+server/screenshots/*
+!server/screenshots/.gitkeep
+server/data/tasks/*
+!server/data/tasks/.gitkeep
+server/data/tasks/checkpoints/
+
+# Archives / temp
+*.zip
+*.tmp
+*.temp
