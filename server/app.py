@@ -4,6 +4,7 @@ from flask_cors import CORS
 
 from config import Config
 from task.task_manager import TaskManager
+from utils.file_manager import FileCleanupWorker, FileManager
 
 # 全局任务管理器实例
 task_manager = TaskManager(
@@ -29,6 +30,21 @@ def create_app():
     Config.OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     Config.SCREENSHOT_DIR.mkdir(parents=True, exist_ok=True)
     Config.TASK_DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+    # 启动后台文件清理线程（默认开启）
+    if Config.ENABLE_FILE_CLEANUP:
+        file_manager = FileManager(
+            output_dir=Config.OUTPUT_DIR,
+            screenshot_dir=Config.SCREENSHOT_DIR,
+            task_data_dir=Config.TASK_DATA_DIR,
+            retention_hours=Config.FILE_RETENTION_HOURS,
+        )
+        cleanup_worker = FileCleanupWorker(
+            file_manager=file_manager,
+            interval_minutes=Config.FILE_CLEANUP_INTERVAL_MINUTES,
+        )
+        cleanup_worker.start()
+        app.extensions["file_cleanup_worker"] = cleanup_worker
 
     return app
 

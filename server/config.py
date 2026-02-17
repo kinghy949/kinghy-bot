@@ -33,6 +33,8 @@ class Config:
     # 任务配置
     MAX_CONCURRENT_TASKS = int(os.getenv('MAX_CONCURRENT_TASKS', '2'))
     FILE_RETENTION_HOURS = int(os.getenv('FILE_RETENTION_HOURS', '24'))
+    ENABLE_FILE_CLEANUP = os.getenv('ENABLE_FILE_CLEANUP', 'true').lower() in ('1', 'true', 'yes', 'on')
+    FILE_CLEANUP_INTERVAL_MINUTES = int(os.getenv('FILE_CLEANUP_INTERVAL_MINUTES', '60'))
 
     # 技术栈配置目录
     TECH_STACKS_DIR = BASE_DIR / 'tech_stacks'
