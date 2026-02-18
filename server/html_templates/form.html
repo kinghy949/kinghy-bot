@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{title}}</title>
+  <style>
+    body { margin: 24px; font-family: "Segoe UI", sans-serif; background: #f4f6fb; }
+    .card { max-width: 720px; margin: auto; background: #fff; border-radius: 12px; padding: 24px; }
+    .field { margin: 10px 0; }
+    .field input { width: 100%; padding: 8px; border: 1px solid #d8deea; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>{{title}}</h1>
+    <p>{{subtitle}}</p>
+    {{fields_html}}
+    <button>保存</button>
+  </div>
+</body>
+</html>

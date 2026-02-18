@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{title}}</title>
+  <style>
+    body { margin: 24px; font-family: "Segoe UI", sans-serif; background: #f8fafc; }
+    .panel { background: #fff; border-radius: 12px; padding: 20px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #e5e7eb; padding: 8px; }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <h1>{{title}}</h1>
+    <p>{{subtitle}}</p>
+    <ul>{{menus_html}}</ul>
+    <table>
+      <thead><tr>{{table_head_html}}</tr></thead>
+      <tbody>{{table_rows_html}}</tbody>
+    </table>
+  </div>
+</body>
+</html>

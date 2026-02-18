@@ -1,0 +1,29 @@
+你是资深前端产品设计师，请根据功能信息生成页面内容数据，用于渲染固定页面模板。
+
+【输入】
+- 功能名称：{feature_name}
+- 功能描述：{feature_description}
+- 页面类型：{page_type}
+
+【输出格式】
+仅输出 JSON 对象，包含以下字段：
+{
+  "title": "页面标题",
+  "subtitle": "页面副标题",
+  "menus": ["菜单1", "菜单2", "菜单3"],
+  "fields": [
+    {"name": "字段名", "label": "展示名", "type": "text|number|date|select"}
+  ],
+  "table_columns": ["列1", "列2", "列3"],
+  "sample_rows": [
+    {"列1": "值", "列2": "值", "列3": "值"}
+  ],
+  "chart_title": "图表标题",
+  "chart_summary": "图表摘要"
+}
+
+【约束】
+1. 输出字段必须完整，不可缺失。
+2. 内容需与 `{feature_name}`、`{feature_description}` 强相关。
+3. `menus` 至少 3 项，`fields` 至少 4 项，`sample_rows` 至少 3 行。
+4. 不得输出 Markdown、注释或额外解释文本。

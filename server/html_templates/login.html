@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{title}}</title>
+  <style>
+    body { margin: 0; background: #f5f7fa; font-family: "Segoe UI", sans-serif; }
+    .wrap { max-width: 960px; margin: 40px auto; display: grid; grid-template-columns: 240px 1fr; gap: 24px; }
+    .side { background: #1f2d3d; color: #dce6f2; border-radius: 12px; padding: 20px; }
+    .main { background: #fff; border-radius: 12px; padding: 24px; }
+    .field { margin: 10px 0; }
+    .field label { display: block; font-size: 12px; color: #667; margin-bottom: 4px; }
+    .field input { width: 100%; border: 1px solid #dde3ea; border-radius: 6px; padding: 8px; }
+    button { border: 0; background: #2f80ed; color: #fff; border-radius: 8px; padding: 10px 16px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <aside class="side">
+      <h3>{{software_name}}</h3>
+      <ul>{{menus_html}}</ul>
+    </aside>
+    <section class="main">
+      <h1>{{title}}</h1>
+      <p>{{subtitle}}</p>
+      {{fields_html}}
+      <button>登录</button>
+    </section>
+  </div>
+</body>
+</html>

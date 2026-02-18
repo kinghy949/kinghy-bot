@@ -3,6 +3,7 @@ import json
 import logging
 import re
 
+from ai.prompt_builder import build_feature_prompt
 from generators.models import Feature
 
 logger = logging.getLogger(__name__)
@@ -32,15 +33,7 @@ class FeatureGenerator:
         return self._default_features(description)
 
     def _build_prompt(self, software_name: str, description: str) -> str:
-        return (
-            "你是资深产品经理。请为一个Web管理系统生成功能清单。\n"
-            "要求：输出严格JSON数组，不要markdown，不要解释。\n"
-            "每个元素字段：name, description, page_type, operation_steps。\n"
-            "page_type必须是: login/dashboard/list/form/detail/chart 之一。\n"
-            "共输出6个功能，至少包含登录、首页概览、数据列表、数据录入、详情、统计分析。\n"
-            f"软件名称: {software_name}\n"
-            f"项目描述: {description}\n"
-        )
+        return build_feature_prompt(software_name, description)
 
     def _parse_ai_result(self, raw: str) -> list[Feature]:
         text = raw.strip()

@@ -1,10 +1,16 @@
 """申请表生成器 - MVP版"""
-from config import Config
+from pathlib import Path
+
+from config import BASE_DIR, Config
 from generators.models import ProjectContext
 
 
 class ApplicationDocGenerator:
     MANUAL_FIELDS = ["著作权人", "证件号码", "联系地址", "联系电话", "权利取得方式", "权利范围"]
+    TEMPLATE_CANDIDATES = [
+        Config.TEMPLATE_DIR / "application_template.docx",
+        BASE_DIR.parent / "template" / "基于SpringBoot的鱼缸控制系统_申请表.docx",
+    ]
 
     def generate(self, task_id: str, context: ProjectContext) -> str:
         try:
@@ -13,30 +19,24 @@ class ApplicationDocGenerator:
         except ImportError:
             return self._fallback_text(task_id, context)
 
-        doc = Document()
-        doc.add_heading("计算机软件著作权登记申请表（自动生成草稿）", level=1)
-        table = doc.add_table(rows=0, cols=2)
-        rows = [
-            ("软件全称", context.software_name),
-            ("软件简称", context.short_name),
-            ("版本号", "V1.0"),
-            ("开发完成日期", context.completion_date),
-            ("源程序量", str(context.total_lines)),
-            ("编程语言", context.tech_config.get("languages", "")),
-            ("主要功能", context.feature_summary),
-            ("运行环境", context.tech_config.get("os", "")),
-            ("软件环境", context.tech_config.get("runtime", "")),
-            ("开发工具", context.tech_config.get("dev_tools", "")),
-        ]
-        for key, value in rows:
-            cells = table.add_row().cells
-            cells[0].text = key
-            cells[1].text = value
+        template_path = self._resolve_template_path()
+        doc = Document(template_path) if template_path else Document()
 
-        p = doc.add_paragraph("\n以下字段请手动填写：")
-        for field in self.MANUAL_FIELDS:
-            run = p.add_run(f"\n- {field}")
-            run.font.highlight_color = WD_COLOR_INDEX.YELLOW
+        mapping = {
+            "{{SOFTWARE_NAME}}": context.software_name,
+            "{{SHORT_NAME}}": context.short_name,
+            "{{VERSION}}": "V1.0",
+            "{{COMPLETION_DATE}}": context.completion_date,
+            "{{TOTAL_LINES}}": str(context.total_lines),
+            "{{LANGUAGES}}": context.tech_config.get("languages", ""),
+            "{{FEATURE_SUMMARY}}": context.feature_summary,
+            "{{OS}}": context.tech_config.get("os", ""),
+            "{{RUNTIME}}": context.tech_config.get("runtime", ""),
+            "{{DEV_TOOLS}}": context.tech_config.get("dev_tools", ""),
+            "{{MANUAL_FIELDS}}": "、".join(self.MANUAL_FIELDS),
+        }
+        self._replace_placeholders(doc, mapping)
+        self._highlight_manual_fields(doc, WD_COLOR_INDEX.YELLOW)
 
         out = Config.OUTPUT_DIR / task_id
         out.mkdir(parents=True, exist_ok=True)
@@ -62,6 +62,62 @@ class ApplicationDocGenerator:
         text.extend([f"- {f}\n" for f in self.MANUAL_FIELDS])
         path.write_text("".join(text), encoding="utf-8")
         return str(path)
+
+    def _resolve_template_path(self) -> Path | None:
+        for candidate in self.TEMPLATE_CANDIDATES:
+            if candidate.exists():
+                return candidate
+        return None
+
+    def _replace_placeholders(self, doc, mapping: dict[str, str]):
+        for paragraph in doc.paragraphs:
+            self._replace_in_paragraph(paragraph, mapping)
+        for table in doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    for paragraph in cell.paragraphs:
+                        self._replace_in_paragraph(paragraph, mapping)
+
+    def _replace_in_paragraph(self, paragraph, mapping: dict[str, str]):
+        text = paragraph.text
+        replaced = text
+        for key, value in mapping.items():
+            replaced = replaced.replace(key, str(value))
+        if replaced == text:
+            return
+        paragraph.clear()
+        paragraph.add_run(replaced)
+
+    def _highlight_manual_fields(self, doc, color):
+        for paragraph in doc.paragraphs:
+            self._highlight_keywords(paragraph, color)
+        for table in doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    for paragraph in cell.paragraphs:
+                        self._highlight_keywords(paragraph, color)
+
+    def _highlight_keywords(self, paragraph, color):
+        text = paragraph.text
+        if not text:
+            return
+        paragraph.clear()
+        for field in self.MANUAL_FIELDS:
+            text = text.replace(field, f"[[[{field}]]]")
+        segments = text.split("[[[")
+        first = True
+        for segment in segments:
+            if first:
+                paragraph.add_run(segment)
+                first = False
+                continue
+            if "]]]" not in segment:
+                paragraph.add_run("[[[" + segment)
+                continue
+            keyword, tail = segment.split("]]]", 1)
+            run = paragraph.add_run(keyword)
+            run.font.highlight_color = color
+            paragraph.add_run(tail)
 
     def _safe(self, name: str) -> str:
         return "".join(ch if ch not in '\\/:*?\"<>|' else "_" for ch in name).strip() or "软著材料"

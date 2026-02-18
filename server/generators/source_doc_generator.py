@@ -19,7 +19,7 @@ class SourceDocGenerator:
         sec.right_margin = Cm(3.17)
 
         sec.header.paragraphs[0].text = f"{context.software_name}源程序"
-        sec.footer.paragraphs[0].text = "第X页"
+        self._set_page_footer(sec.footer.paragraphs[0])
         doc.add_heading(f"{context.software_name} 源程序文档", level=1)
 
         all_lines: list[tuple[str, str]] = []
@@ -64,6 +64,30 @@ class SourceDocGenerator:
                 chunks.append(f"{i:04d} {line}\n")
         path.write_text("".join(chunks), encoding="utf-8")
         return str(path)
+
+    def _set_page_footer(self, paragraph):
+        paragraph.clear()
+        paragraph.add_run("第 ")
+        self._add_field(paragraph, "PAGE")
+        paragraph.add_run(" 页 共 ")
+        self._add_field(paragraph, "NUMPAGES")
+        paragraph.add_run(" 页")
+
+    def _add_field(self, paragraph, field_name: str):
+        from docx.oxml import OxmlElement
+        from docx.oxml.ns import qn
+
+        run = paragraph.add_run()
+        fld_char_begin = OxmlElement("w:fldChar")
+        fld_char_begin.set(qn("w:fldCharType"), "begin")
+        instr_text = OxmlElement("w:instrText")
+        instr_text.set(qn("xml:space"), "preserve")
+        instr_text.text = field_name
+        fld_char_end = OxmlElement("w:fldChar")
+        fld_char_end.set(qn("w:fldCharType"), "end")
+        run._r.append(fld_char_begin)
+        run._r.append(instr_text)
+        run._r.append(fld_char_end)
 
     def _safe(self, name: str) -> str:
         return "".join(ch if ch not in '\\/:*?\"<>|' else "_" for ch in name).strip() or "软著材料"

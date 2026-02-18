@@ -22,9 +22,9 @@ class ConsistencyChecker:
             if feature.screenshot_path and "placeholder" in feature.screenshot_path:
                 report.warnings.append(f"功能'{feature.name}'使用了占位截图")
 
-        if context.total_lines < int(context.target_lines * 0.6):
+        if context.total_lines < int(context.target_lines * 0.8):
             report.errors.append(
-                f"代码行数({context.total_lines})低于最低期望({int(context.target_lines * 0.6)})"
+                f"代码行数({context.total_lines})低于最低期望({int(context.target_lines * 0.8)})"
             )
 
         return report

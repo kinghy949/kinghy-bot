@@ -24,6 +24,7 @@ class TaskManager:
         task_state = {
             "task_id": task_id,
             "status": "pending",
+            "cancel_requested": False,
             "current_step": 0,
             "total_steps": 6,
             "step_name": "",
@@ -96,6 +97,17 @@ class TaskManager:
         })
         self._save_state(task_id, state)
 
+    def mark_cancelled(self, task_id: str, message: str = "任务已取消"):
+        state = self.get_task_state(task_id)
+        if not state:
+            return
+        state.update({
+            "status": "cancelled",
+            "message": message,
+            "cancel_requested": True,
+        })
+        self._save_state(task_id, state)
+
     def fail_task(self, task_id: str, error_message: str):
         """标记任务失败"""
         state = self.get_task_state(task_id)
@@ -110,12 +122,27 @@ class TaskManager:
 
     def cancel_task(self, task_id: str) -> bool:
         """取消任务"""
+        state = self.get_task_state(task_id)
+        if not state:
+            return False
+        if state.get("status") in ("completed", "failed", "cancelled"):
+            return False
+        state["cancel_requested"] = True
+        state["message"] = "已收到取消请求，正在停止任务..."
+        self._save_state(task_id, state)
+
         if task_id in self._futures:
             cancelled = self._futures[task_id].cancel()
             if cancelled:
-                self.fail_task(task_id, "任务已被用户取消")
-            return cancelled
-        return False
+                self.mark_cancelled(task_id, "任务已取消")
+            return True
+        return True
+
+    def is_cancel_requested(self, task_id: str) -> bool:
+        state = self.get_task_state(task_id)
+        if not state:
+            return False
+        return bool(state.get("cancel_requested"))
 
     def _on_task_done(self, task_id: str, future):
         """任务完成回调"""

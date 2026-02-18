@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{title}}</title>
+  <style>
+    body { margin: 0; background: #eef2f7; font-family: "Segoe UI", sans-serif; }
+    .wrap { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+    .side { background: #22313f; color: #dbe6f1; padding: 20px; }
+    .main { padding: 24px; }
+    .card { background: #fff; border-radius: 10px; padding: 18px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <aside class="side"><h3>{{software_name}}</h3><ul>{{menus_html}}</ul></aside>
+    <main class="main">
+      <div class="card"><h1>{{title}}</h1><p>{{subtitle}}</p></div>
+      <div class="card"><h3>{{chart_title}}</h3><p>{{chart_summary}}</p></div>
+      <table border="1" cellpadding="8" cellspacing="0">
+        <thead><tr>{{table_head_html}}</tr></thead>
+        <tbody>{{table_rows_html}}</tbody>
+      </table>
+    </main>
+  </div>
+</body>
+</html>

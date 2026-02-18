@@ -1,13 +1,17 @@
 """HTML页面生成器"""
 import html
+import json
 import re
-from pathlib import Path
 
+from ai.prompt_builder import build_page_prompt
 from config import Config
 from generators.models import ProjectContext
 
 
 class HtmlPageGenerator:
+    def __init__(self):
+        self.ai_client = None
+
     def generate(self, task_id: str, context: ProjectContext) -> dict[str, str]:
         output: dict[str, str] = {}
         base_dir = Config.OUTPUT_DIR / task_id / "work" / "html"
@@ -16,113 +20,109 @@ class HtmlPageGenerator:
         for idx, feature in enumerate(context.feature_list, start=1):
             filename = f"{idx:02d}_{self._slug(feature.name)}.html"
             path = base_dir / filename
-            path.write_text(self._build_page(context.software_name, feature.name, feature.description, feature.page_type), encoding="utf-8")
+            page_payload = self._build_page_payload(feature.name, feature.description, feature.page_type)
+            html_page = self._build_page(
+                software_name=context.software_name,
+                page_type=feature.page_type,
+                payload=page_payload,
+            )
+            path.write_text(html_page, encoding="utf-8")
             output[feature.name] = str(path)
             feature.html_path = str(path)
 
         context.generated_html_pages = output
         return output
 
-    def _build_page(self, software_name: str, feature_name: str, feature_desc: str, page_type: str) -> str:
-        title = html.escape(feature_name)
-        desc = html.escape(feature_desc)
-        software = html.escape(software_name)
-        body = self._page_fragment(page_type, title)
-        return f"""<!doctype html>
-<html lang=\"zh-CN\">
-<head>
-  <meta charset=\"UTF-8\" />
-  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />
-  <title>{title}</title>
-  <style>
-    * {{ box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }}
-    body {{ margin: 0; background: #f3f5f7; color: #303133; }}
-    .layout {{ display: flex; min-height: 100vh; }}
-    .sidebar {{ width: 220px; background: #1f2d3d; color: #dbe3ee; padding: 20px; }}
-    .sidebar h3 {{ color: #fff; margin-top: 0; font-size: 16px; }}
-    .sidebar li {{ margin: 10px 0; font-size: 13px; }}
-    .content {{ flex: 1; padding: 24px; }}
-    .panel {{ background: #fff; border-radius: 10px; padding: 18px; box-shadow: 0 4px 16px rgba(0,0,0,0.06); }}
-    .title {{ font-size: 22px; margin: 0 0 8px; }}
-    .sub {{ color: #606266; margin-bottom: 16px; }}
-    table {{ width: 100%; border-collapse: collapse; margin-top: 10px; }}
-    th, td {{ border: 1px solid #ebeef5; padding: 10px; text-align: left; font-size: 13px; }}
-    .grid {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }}
-    .stat {{ background: #f7fbff; border: 1px solid #d9ecff; padding: 14px; border-radius: 8px; }}
-    .btn {{ background: #409eff; color: #fff; border: 0; padding: 8px 16px; border-radius: 6px; }}
-    .field {{ margin: 10px 0; }}
-    .field label {{ display: block; color: #606266; margin-bottom: 4px; font-size: 12px; }}
-    .field input {{ width: 100%; border: 1px solid #dcdfe6; border-radius: 6px; padding: 8px; }}
-  </style>
-</head>
-<body>
-  <div class=\"layout\">
-    <aside class=\"sidebar\">
-      <h3>{software}</h3>
-      <ul>
-        <li>首页</li>
-        <li>基础管理</li>
-        <li>业务管理</li>
-        <li>统计分析</li>
-      </ul>
-    </aside>
-    <main class=\"content\">
-      <section class=\"panel\">
-        <h1 class=\"title\">{title}</h1>
-        <div class=\"sub\">{desc}</div>
-        {body}
-      </section>
-    </main>
-  </div>
-</body>
-</html>
-"""
+    def _build_page(self, software_name: str, page_type: str, payload: dict) -> str:
+        template = self._load_template(page_type)
+        rendered = template
+        rendered = rendered.replace("{{software_name}}", html.escape(software_name))
+        rendered = rendered.replace("{{title}}", html.escape(str(payload.get("title", ""))))
+        rendered = rendered.replace("{{subtitle}}", html.escape(str(payload.get("subtitle", ""))))
+        rendered = rendered.replace("{{menus_html}}", self._render_menus(payload.get("menus", [])))
+        rendered = rendered.replace("{{fields_html}}", self._render_fields(payload.get("fields", [])))
+        rendered = rendered.replace("{{table_head_html}}", self._render_table_head(payload.get("table_columns", [])))
+        rendered = rendered.replace("{{table_rows_html}}", self._render_table_rows(payload.get("table_columns", []), payload.get("sample_rows", [])))
+        rendered = rendered.replace("{{chart_title}}", html.escape(str(payload.get("chart_title", ""))))
+        rendered = rendered.replace("{{chart_summary}}", html.escape(str(payload.get("chart_summary", ""))))
+        return rendered
 
-    def _page_fragment(self, page_type: str, title: str) -> str:
-        if page_type == "login":
-            return (
-                "<div style='max-width:360px'>"
-                "<div class='field'><label>用户名</label><input value='admin' /></div>"
-                "<div class='field'><label>密码</label><input value='******' /></div>"
-                "<button class='btn'>登录系统</button></div>"
+    def _build_page_payload(self, feature_name: str, feature_desc: str, page_type: str) -> dict:
+        prompt = build_page_prompt(feature_name, feature_desc, page_type)
+        try:
+            if self.ai_client is None:
+                from ai.ai_client import AIClient
+
+                self.ai_client = AIClient()
+            raw = self.ai_client.generate(prompt, max_retries=1)
+            return self._parse_payload(raw, feature_name, feature_desc)
+        except Exception:
+            return self._fallback_payload(feature_name, feature_desc)
+
+    def _parse_payload(self, raw: str, feature_name: str, feature_desc: str) -> dict:
+        text = raw.strip()
+        match = re.search(r"\{[\s\S]*\}", text)
+        if match:
+            text = match.group(0)
+        data = json.loads(text)
+        if not isinstance(data, dict):
+            return self._fallback_payload(feature_name, feature_desc)
+        fallback = self._fallback_payload(feature_name, feature_desc)
+        fallback.update(data)
+        return fallback
+
+    def _fallback_payload(self, feature_name: str, feature_desc: str) -> dict:
+        return {
+            "title": feature_name,
+            "subtitle": feature_desc,
+            "menus": ["首页", "业务管理", "统计分析"],
+            "fields": [
+                {"name": "name", "label": "名称", "type": "text"},
+                {"name": "status", "label": "状态", "type": "select"},
+                {"name": "owner", "label": "负责人", "type": "text"},
+                {"name": "updated_at", "label": "更新时间", "type": "date"},
+            ],
+            "table_columns": ["编号", "名称", "状态"],
+            "sample_rows": [
+                {"编号": "1", "名称": f"{feature_name}样例A", "状态": "启用"},
+                {"编号": "2", "名称": f"{feature_name}样例B", "状态": "停用"},
+                {"编号": "3", "名称": f"{feature_name}样例C", "状态": "启用"},
+            ],
+            "chart_title": f"{feature_name}趋势",
+            "chart_summary": "近三个月整体指标稳定增长。",
+        }
+
+    def _load_template(self, page_type: str) -> str:
+        path = Config.HTML_TEMPLATES_DIR / f"{page_type}.html"
+        if path.exists():
+            return path.read_text(encoding="utf-8")
+        fallback = Config.HTML_TEMPLATES_DIR / "list.html"
+        if fallback.exists():
+            return fallback.read_text(encoding="utf-8")
+        return "<html><body><h1>{{title}}</h1><p>{{subtitle}}</p></body></html>"
+
+    def _render_menus(self, menus: list) -> str:
+        return "\n".join(f"<li>{html.escape(str(item))}</li>" for item in menus[:8])
+
+    def _render_fields(self, fields: list) -> str:
+        html_fields = []
+        for field in fields[:12]:
+            label = html.escape(str(field.get("label", field.get("name", "字段"))))
+            html_fields.append(
+                f"<div class='field'><label>{label}</label><input placeholder='请输入{label}' /></div>"
             )
-        if page_type == "dashboard":
-            return (
-                "<div class='grid'>"
-                "<div class='stat'><strong>128</strong><div>今日新增</div></div>"
-                "<div class='stat'><strong>96%</strong><div>任务完成率</div></div>"
-                "<div class='stat'><strong>36</strong><div>待处理事项</div></div>"
-                "</div>"
-            )
-        if page_type == "form":
-            return (
-                "<div style='max-width:520px'>"
-                "<div class='field'><label>名称</label><input value='示例数据' /></div>"
-                "<div class='field'><label>状态</label><input value='启用' /></div>"
-                "<div class='field'><label>备注</label><input value='系统自动生成示例' /></div>"
-                "<button class='btn'>保存</button></div>"
-            )
-        if page_type == "detail":
-            return (
-                "<table><tr><th>字段</th><th>值</th></tr>"
-                f"<tr><td>模块名称</td><td>{title}</td></tr>"
-                "<tr><td>创建人</td><td>管理员</td></tr>"
-                "<tr><td>更新时间</td><td>2026-02-17</td></tr></table>"
-            )
-        if page_type == "chart":
-            return (
-                "<div class='grid'>"
-                "<div class='stat'><strong>Q1</strong><div>业务增长 12%</div></div>"
-                "<div class='stat'><strong>Q2</strong><div>业务增长 18%</div></div>"
-                "<div class='stat'><strong>Q3</strong><div>业务增长 21%</div></div>"
-                "</div>"
-            )
-        return (
-            "<table><tr><th>ID</th><th>名称</th><th>状态</th></tr>"
-            "<tr><td>1</td><td>示例一</td><td>启用</td></tr>"
-            "<tr><td>2</td><td>示例二</td><td>停用</td></tr>"
-            "<tr><td>3</td><td>示例三</td><td>启用</td></tr></table>"
-        )
+        return "\n".join(html_fields)
+
+    def _render_table_head(self, columns: list) -> str:
+        return "".join(f"<th>{html.escape(str(c))}</th>" for c in columns[:10])
+
+    def _render_table_rows(self, columns: list, rows: list) -> str:
+        html_rows = []
+        safe_columns = [str(c) for c in columns[:10]]
+        for row in rows[:20]:
+            cells = "".join(f"<td>{html.escape(str(row.get(c, '')))}</td>" for c in safe_columns)
+            html_rows.append(f"<tr>{cells}</tr>")
+        return "\n".join(html_rows)
 
     def _slug(self, text: str) -> str:
         return re.sub(r"[^a-zA-Z0-9\u4e00-\u9fff]+", "_", text).strip("_").lower() or "feature"

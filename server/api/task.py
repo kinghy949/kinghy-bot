@@ -58,7 +58,7 @@ def task_stream(task_id):
             }
             yield f"data: {json.dumps(push_data, ensure_ascii=False)}\n\n"
 
-            if state['status'] in ('completed', 'failed'):
+            if state['status'] in ('completed', 'failed', 'cancelled'):
                 logger.info(
                     "接口出参 /task/%s/stream: 任务结束，status=%s",
                     task_id,

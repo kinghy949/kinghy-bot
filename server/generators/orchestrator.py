@@ -24,6 +24,10 @@ class StepWarningError(Exception):
     """警告错误 - 当前步骤部分失败，但可以继续后续步骤"""
 
 
+class TaskCancelledError(Exception):
+    """任务被取消"""
+
+
 class Orchestrator:
     """六步生成流程编排器"""
 
@@ -57,6 +61,7 @@ class Orchestrator:
         ]
 
         for step_num, step_name, step_func in steps:
+            self._check_cancel(task_id, f"步骤{step_num}开始前收到取消请求")
             if step_num < start_step:
                 self._log(task_id, f"跳过已完成步骤: {step_name}")
                 continue
@@ -64,8 +69,13 @@ class Orchestrator:
             try:
                 self._update_progress(task_id, step_num, step_name, 5, f"开始步骤{step_num}: {step_name}")
                 step_func(task_id, context)
+                self._check_cancel(task_id, f"步骤{step_num}执行后收到取消请求")
                 self._save_checkpoint(task_id, step_num, context)
                 self._log(task_id, f"步骤{step_num}完成: {step_name}")
+            except TaskCancelledError as e:
+                self._log(task_id, f"任务取消: {e}")
+                self.task_manager.mark_cancelled(task_id, str(e))
+                return
             except StepFatalError as e:
                 self._log(task_id, f"步骤{step_num}致命错误: {e}")
                 self.task_manager.fail_task(task_id, f"步骤{step_num} {step_name} 失败: {e}")
@@ -156,3 +166,7 @@ class Orchestrator:
             except Exception:
                 pass
         return {}
+
+    def _check_cancel(self, task_id: str, message: str):
+        if self.task_manager.is_cancel_requested(task_id):
+            raise TaskCancelledError(message)
