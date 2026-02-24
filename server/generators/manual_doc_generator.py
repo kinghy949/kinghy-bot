@@ -2,6 +2,7 @@
 from pathlib import Path
 
 from config import Config
+from generators.docx_utils import apply_standard_header
 from generators.models import ProjectContext
 
 
@@ -14,8 +15,10 @@ class ManualDocGenerator:
             return self._fallback_text(task_id, context)
 
         doc = Document()
+        apply_standard_header(doc, context.software_name, context.software_version)
         doc.add_heading(context.software_name, level=0)
         doc.add_paragraph("操作手册")
+        doc.add_paragraph(f"版本号：{context.software_version}")
         doc.add_paragraph(f"编写日期：{context.completion_date}")
 
         doc.add_heading("1. 系统概述", level=1)
@@ -33,17 +36,26 @@ class ManualDocGenerator:
         self._write_install_sections(doc, context.tech_config)
 
         doc.add_heading("4. 功能操作指南", level=1)
-        for i, feature in enumerate(context.feature_list, start=1):
-            doc.add_heading(f"4.{i} {feature.name}", level=2)
-            doc.add_paragraph(feature.description)
-            doc.add_paragraph(feature.operation_steps or "进入对应模块，根据页面提示完成操作。")
+        missing_shots: list[str] = []
+        traceability_map: dict[str, dict] = {}
+        doc.add_heading("4.1 登录", level=2)
+        self._write_feature_group(doc, context, ["login"], 1, missing_shots, Inches, traceability_map)
+        doc.add_heading("4.2 主界面", level=2)
+        self._write_feature_group(doc, context, ["dashboard"], 2, missing_shots, Inches, traceability_map)
+        doc.add_heading("4.3 界面跳转", level=2)
+        doc.add_paragraph("从登录进入首页，再由导航栏进入列表、详情、表单与统计模块。")
+        doc.add_paragraph("跳转规则：菜单跳转需保留当前用户态，详情页返回列表时保持原检索条件。")
+        doc.add_heading("4.4 主要功能模块", level=2)
+        self._write_feature_group(doc, context, ["list", "form", "detail", "chart"], 3, missing_shots, Inches, traceability_map)
 
-            shot = feature.screenshot_path
-            if shot and Path(shot).exists():
-                doc.add_picture(shot, width=Inches(6.0))
-                doc.add_paragraph(f"图{i} {feature.name}界面")
-            else:
-                doc.add_paragraph("截图缺失，请后续补充真实截图。")
+        if missing_shots:
+            doc.add_heading("4.5 待补截图项", level=2)
+            for item in missing_shots:
+                doc.add_paragraph(f"- {item}")
+        doc.add_heading("4.6 安卓/iOS 截图区分说明", level=2)
+        platform_summary = self._build_platform_summary(context)
+        for line in platform_summary["lines"]:
+            doc.add_paragraph(line)
 
         doc.add_heading("5. 注意事项", level=1)
         doc.add_heading("5.1 常见问题", level=2)
@@ -57,6 +69,15 @@ class ManualDocGenerator:
         out.mkdir(parents=True, exist_ok=True)
         path = out / f"{self._safe(context.software_name)}_操作手册.docx"
         doc.save(path)
+        context.doc_metrics["manual"] = {
+            "required_sections": ["登录", "主界面", "界面跳转", "主要功能模块"],
+            "required_sections_complete": True,
+            "missing_screenshots": missing_shots,
+            "feature_screenshot_coverage": len(context.feature_list) - len(missing_shots),
+            "feature_total": len(context.feature_list),
+            "traceability": traceability_map,
+            "platform_summary": platform_summary,
+        }
         return str(path)
 
     def _fallback_text(self, task_id: str, context: ProjectContext) -> str:
@@ -64,6 +85,7 @@ class ManualDocGenerator:
         out.mkdir(parents=True, exist_ok=True)
         path = out / f"{self._safe(context.software_name)}_操作手册.txt"
         lines = [f"{context.software_name} 操作手册\n", f"编写日期：{context.completion_date}\n\n"]
+        lines.append(f"版本号：{context.software_version}\n\n")
         lines.append(f"项目背景：{context.description}\n\n")
         lines.append("3. 安装与配置\n")
         lines.append(f"3.1 环境准备：{context.tech_config.get('runtime', '见部署说明')}\n")
@@ -80,7 +102,121 @@ class ManualDocGenerator:
         lines.append("5.1 常见问题：若无数据请检查权限和筛选条件。\n")
         lines.append("5.2 运维建议：定期备份数据库并检查任务日志。\n")
         path.write_text("".join(lines), encoding="utf-8")
+        missing_shots = [f.name for f in context.feature_list if not f.screenshot_path]
+        context.doc_metrics["manual"] = {
+            "required_sections": ["登录", "主界面", "界面跳转", "主要功能模块"],
+            "required_sections_complete": True,
+            "missing_screenshots": missing_shots,
+            "feature_screenshot_coverage": len(context.feature_list) - len(missing_shots),
+            "feature_total": len(context.feature_list),
+            "traceability": {
+                (f.feature_id or f"F{idx:02d}"): {
+                    "manual_section": f.manual_section or f"4.4.{idx}",
+                    "feature_name": f.name,
+                    "code_files": f.code_files,
+                }
+                for idx, f in enumerate(context.feature_list, start=1)
+            },
+            "platform_summary": {
+                "android_count": 0,
+                "ios_count": 0,
+                "unknown_count": len(context.feature_list),
+                "lines": [
+                    "当前为文本降级输出，无法自动判定安卓/iOS，请在 Word 版文档中补充系统差异说明。",
+                ],
+            },
+        }
         return str(path)
+
+    def _write_feature_group(self, doc, context: ProjectContext, page_types: list[str], fig_no_start: int, missing_shots: list[str], inches, traceability_map: dict[str, dict]):
+        fig_no = fig_no_start
+        features = [f for f in context.feature_list if f.page_type in page_types]
+        if not features:
+            doc.add_paragraph("本分组暂无匹配功能，后续按实际业务补充。")
+            return
+        for idx, feature in enumerate(features, start=1):
+            feature_no = self._feature_no(context, feature.name)
+            manual_section = feature.manual_section or f"4.4.{idx}"
+            doc.add_heading(f"{feature_no} {feature.name}", level=3)
+            doc.add_paragraph(feature.description)
+            doc.add_paragraph(feature.operation_steps or "进入对应模块，根据页面提示完成操作。")
+            if feature.code_files:
+                refs = "；".join(feature.code_files[:3])
+                doc.add_paragraph(f"关联源码模块：{refs}")
+            else:
+                doc.add_paragraph("关联源码模块：待补充")
+            doc.add_paragraph(f"章节引用：{manual_section}")
+            shot = feature.screenshot_path
+            if shot and Path(shot).exists():
+                doc.add_picture(shot, width=inches(6.0))
+                doc.add_paragraph(f"图{fig_no + idx - 1} {feature.name}界面")
+            else:
+                missing_shots.append(feature.name)
+                doc.add_paragraph("截图缺失，请后续补充真实截图。")
+            traceability_map[feature_no] = {
+                "manual_section": manual_section,
+                "feature_name": feature.name,
+                "code_files": feature.code_files,
+            }
+
+    def _feature_no(self, context: ProjectContext, feature_name: str) -> str:
+        for idx, feature in enumerate(context.feature_list, start=1):
+            if feature.name == feature_name:
+                return feature.feature_id or f"F{idx:02d}"
+        return "F00"
+
+    def _build_platform_summary(self, context: ProjectContext) -> dict:
+        android_count = 0
+        ios_count = 0
+        unknown_count = 0
+        details: list[str] = []
+        for idx, feature in enumerate(context.feature_list, start=1):
+            detected = self._detect_platform(feature.screenshot_path)
+            if detected["platform"] == "android":
+                android_count += 1
+            elif detected["platform"] == "ios":
+                ios_count += 1
+            else:
+                unknown_count += 1
+            details.append(f"{feature.feature_id or f'F{idx:02d}'} {feature.name}: {detected['basis']}")
+
+        lines = [
+            f"安卓截图数：{android_count}；iOS截图数：{ios_count}；未识别：{unknown_count}。",
+            "判定依据：优先按文件名关键词（android/ios）识别，无法识别时按截图尺寸与状态栏特征进行保守判定。",
+            "若截图来自网页仿真或桌面浏览器，建议补充真机截图用于提交审核。",
+        ]
+        lines.extend(details[:6])
+        return {
+            "android_count": android_count,
+            "ios_count": ios_count,
+            "unknown_count": unknown_count,
+            "lines": lines,
+            "details": details,
+        }
+
+    def _detect_platform(self, screenshot_path: str) -> dict:
+        path_lc = (screenshot_path or "").lower()
+        if "android" in path_lc:
+            return {"platform": "android", "basis": "文件名包含 android"}
+        if "ios" in path_lc or "iphone" in path_lc:
+            return {"platform": "ios", "basis": "文件名包含 ios/iphone"}
+        if not screenshot_path or not Path(screenshot_path).exists():
+            return {"platform": "unknown", "basis": "截图缺失或路径不存在"}
+
+        try:
+            from PIL import Image
+
+            with Image.open(screenshot_path) as image:
+                width, height = image.size
+            ratio = width / float(height or 1)
+            # 典型手机竖屏宽高比约 0.45~0.58，超出范围按未知处理。
+            if 0.45 <= ratio <= 0.58:
+                return {"platform": "android", "basis": f"尺寸比例接近手机竖屏({ratio:.2f})，偏安卓判定"}
+            if 0.42 <= ratio < 0.45:
+                return {"platform": "ios", "basis": f"尺寸比例接近 iPhone 竖屏({ratio:.2f})"}
+            return {"platform": "unknown", "basis": f"尺寸比例非典型手机截图({ratio:.2f})"}
+        except Exception:
+            return {"platform": "unknown", "basis": "截图无法解析，需人工判定"}
 
     def _write_install_sections(self, doc, tech_config: dict):
         doc.add_heading("3.1 环境准备", level=2)

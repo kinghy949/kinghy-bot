@@ -25,7 +25,7 @@ class ApplicationDocGenerator:
         mapping = {
             "{{SOFTWARE_NAME}}": context.software_name,
             "{{SHORT_NAME}}": context.short_name,
-            "{{VERSION}}": "V1.0",
+            "{{VERSION}}": context.software_version,
             "{{COMPLETION_DATE}}": context.completion_date,
             "{{TOTAL_LINES}}": str(context.total_lines),
             "{{LANGUAGES}}": context.tech_config.get("languages", ""),
@@ -52,7 +52,7 @@ class ApplicationDocGenerator:
             "计算机软件著作权登记申请表（自动生成草稿）\n\n",
             f"软件全称：{context.software_name}\n",
             f"软件简称：{context.short_name}\n",
-            "版本号：V1.0\n",
+            f"版本号：{context.software_version}\n",
             f"开发完成日期：{context.completion_date}\n",
             f"源程序量：{context.total_lines}\n",
             f"编程语言：{context.tech_config.get('languages', '')}\n",

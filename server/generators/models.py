@@ -10,6 +10,7 @@ class Feature:
     name: str
     description: str
     page_type: str  # login/dashboard/list/form/detail/chart
+    feature_id: str = ""
     manual_section: str = ""
     code_files: list = field(default_factory=list)
     html_path: str = ""
@@ -21,6 +22,7 @@ class Feature:
             "name": self.name,
             "description": self.description,
             "page_type": self.page_type,
+            "feature_id": self.feature_id,
             "manual_section": self.manual_section,
             "code_files": self.code_files,
             "html_path": self.html_path,
@@ -41,9 +43,11 @@ class ProjectContext:
     short_name: str
     description: str
     tech_stack_id: str
+    software_version: str = "V1.0"
     tech_config: dict = field(default_factory=dict)
     target_lines: int = 5000
     completion_date: str = ""
+    copyright_owner: str = ""
 
     feature_list: list = field(default_factory=list)
 
@@ -54,6 +58,7 @@ class ProjectContext:
 
     total_lines: int = 0
     feature_summary: str = ""
+    doc_metrics: dict = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         return {
@@ -61,9 +66,11 @@ class ProjectContext:
             "short_name": self.short_name,
             "description": self.description,
             "tech_stack_id": self.tech_stack_id,
+            "software_version": self.software_version,
             "tech_config": self.tech_config,
             "target_lines": self.target_lines,
             "completion_date": self.completion_date,
+            "copyright_owner": self.copyright_owner,
             "feature_list": [f.to_dict() if isinstance(f, Feature) else f for f in self.feature_list],
             "generated_code": self.generated_code,
             "generated_html_pages": self.generated_html_pages,
@@ -71,6 +78,7 @@ class ProjectContext:
             "output_files": self.output_files,
             "total_lines": self.total_lines,
             "feature_summary": self.feature_summary,
+            "doc_metrics": self.doc_metrics,
         }
 
     def to_json(self) -> str:

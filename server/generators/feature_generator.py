@@ -54,6 +54,7 @@ class FeatureGenerator:
                     name=str(item.get("name", f"功能{i}")).strip()[:30],
                     description=str(item.get("description", "")).strip()[:120] or f"{i}号功能模块",
                     page_type=page_type,
+                    feature_id=f"F{i:02d}",
                     manual_section=f"4.2.{i}",
                     operation_steps=str(item.get("operation_steps", "")).strip()[:300],
                 )
@@ -62,10 +63,10 @@ class FeatureGenerator:
 
     def _default_features(self, description: str) -> list[Feature]:
         return [
-            Feature(name="用户登录", description="用户账号密码登录并进行权限校验", page_type="login", manual_section="4.2.1", operation_steps="输入账号密码并点击登录，系统校验通过后进入首页。"),
-            Feature(name="系统首页", description="展示关键业务指标、待办信息与统计概览", page_type="dashboard", manual_section="4.2.2", operation_steps="登录后进入首页，查看统计卡片和最近业务动态。"),
-            Feature(name="数据管理", description=f"针对{description}的核心业务数据列表与检索", page_type="list", manual_section="4.2.3", operation_steps="通过筛选条件查询数据，支持分页浏览和批量操作。"),
-            Feature(name="数据录入", description="新增和编辑业务数据，支持字段校验", page_type="form", manual_section="4.2.4", operation_steps="进入新增页面填写表单，提交后系统保存并返回列表。"),
-            Feature(name="详情查看", description="查看单条业务数据的完整信息与状态", page_type="detail", manual_section="4.2.5", operation_steps="在列表中点击详情，查看完整信息及变更记录。"),
-            Feature(name="统计分析", description="按时间和维度生成统计图表辅助决策", page_type="chart", manual_section="4.2.6", operation_steps="选择统计维度和时间范围，系统生成图表和汇总数据。"),
+            Feature(name="用户登录", description="用户账号密码登录并进行权限校验", page_type="login", feature_id="F01", manual_section="4.2.1", operation_steps="输入账号密码并点击登录，系统校验通过后进入首页。"),
+            Feature(name="系统首页", description="展示关键业务指标、待办信息与统计概览", page_type="dashboard", feature_id="F02", manual_section="4.2.2", operation_steps="登录后进入首页，查看统计卡片和最近业务动态。"),
+            Feature(name="数据管理", description=f"针对{description}的核心业务数据列表与检索", page_type="list", feature_id="F03", manual_section="4.2.3", operation_steps="通过筛选条件查询数据，支持分页浏览和批量操作。"),
+            Feature(name="数据录入", description="新增和编辑业务数据，支持字段校验", page_type="form", feature_id="F04", manual_section="4.2.4", operation_steps="进入新增页面填写表单，提交后系统保存并返回列表。"),
+            Feature(name="详情查看", description="查看单条业务数据的完整信息与状态", page_type="detail", feature_id="F05", manual_section="4.2.5", operation_steps="在列表中点击详情，查看完整信息及变更记录。"),
+            Feature(name="统计分析", description="按时间和维度生成统计图表辅助决策", page_type="chart", feature_id="F06", manual_section="4.2.6", operation_steps="选择统计维度和时间范围，系统生成图表和汇总数据。"),
         ]

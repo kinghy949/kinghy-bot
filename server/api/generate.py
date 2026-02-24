@@ -25,8 +25,10 @@ def create_generate_task():
     software_name = data.get('software_name', '').strip()
     description = data.get('description', '').strip()
     tech_stack = data.get('tech_stack', '').strip()
+    software_version = data.get('software_version', 'V1.0').strip() or "V1.0"
     target_lines = data.get('target_lines', 5000)
     completion_date = data.get('completion_date', date.today().isoformat())
+    copyright_owner = data.get('copyright_owner', '').strip() or software_name
 
     if not software_name:
         resp = {"error": "软著名称不能为空"}
@@ -66,9 +68,11 @@ def create_generate_task():
         short_name=short_name,
         description=description,
         tech_stack_id=tech_stack,
+        software_version=software_version,
         tech_config=tech_config,
         target_lines=target_lines,
         completion_date=completion_date,
+        copyright_owner=copyright_owner,
     )
 
     # 提交任务

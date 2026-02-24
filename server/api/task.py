@@ -48,7 +48,7 @@ def task_stream(task_id):
                 "task_id": state["task_id"],
                 "status": state["status"],
                 "current_step": state["current_step"],
-                "total_steps": state.get("total_steps", 6),
+                "total_steps": state.get("total_steps", 7),
                 "step_name": state["step_name"],
                 "progress": state["progress"],
                 "message": state["message"],

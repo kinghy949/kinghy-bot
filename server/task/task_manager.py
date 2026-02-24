@@ -26,7 +26,7 @@ class TaskManager:
             "status": "pending",
             "cancel_requested": False,
             "current_step": 0,
-            "total_steps": 6,
+            "total_steps": 7,
             "step_name": "",
             "progress": 0,
             "message": "任务已创建，等待执行...",
@@ -90,7 +90,7 @@ class TaskManager:
             return
         state.update({
             "status": "completed",
-            "current_step": 6,
+            "current_step": state.get("total_steps", 7),
             "progress": 100,
             "message": "生成完成",
             "output_files": output_files,
